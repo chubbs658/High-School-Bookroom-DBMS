@@ -1,0 +1,131 @@
+{% extends "base.html" %}{% block content %}
+<div class="dataset-page">
+  <div class="dataset-watermark" aria-hidden="true"></div>
+  <div class="dataset-content">
+    <h1>Students</h1>
+
+    <details class="panel">
+      <summary>Register student</summary>
+      <form method="post" class="grid">
+        <label>Student number<input name="student_number" required /></label>
+        <label>First name<input name="first_name" required /></label>
+        <label>Last name<input name="last_name" required /></label>
+        <label
+          >Grade level<input
+            name="grade_level"
+            type="number"
+            min="1"
+            max="13"
+            required
+        /></label>
+        <label>Class<input name="class_name" required /></label>
+        <label
+          >Gender
+          <select name="gender" required>
+            <option value="" disabled selected>Select…</option>
+            {% for g in genders %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="check"
+          ><input type="checkbox" name="contribution_paid" /> Contribution
+          paid</label
+        >
+        <div><button>Register student</button></div>
+      </form>
+    </details>
+
+    <details class="panel">
+      <summary>Filter students</summary>
+      <form class="grid" method="get">
+        <label
+          >Name / student number<input
+            name="q"
+            value="{{request.args.get('q','')}}"
+        /></label>
+        <label
+          >Grade<input name="grade" value="{{request.args.get('grade','')}}"
+        /></label>
+        <label
+          >Class<input
+            name="class_name"
+            value="{{request.args.get('class_name','')}}"
+        /></label>
+        <label
+          >Gender
+          <select name="gender">
+            <option value="" {% if not request.args.get('gender') %}selected{% endif %}>All</option>
+            {% for g in genders %}
+            <option value="{{ g }}" {% if request.args.get('gender')==g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div><button>Filter</button></div>
+      </form>
+    </details>
+
+    <table>
+      <tr>
+        <th>Student #</th>
+        <th>Name</th>
+        <th>Grade</th>
+        <th>Class</th>
+        <th>Gender</th>
+        <th>Contribution</th>
+        <th>Action</th>
+      </tr>
+      {% for s in students %}
+      <tr>
+        <td>{{s.student_number}}</td>
+        <td>{{s.first_name}} {{s.last_name}}</td>
+        <td>{{s.grade_level}}</td>
+        <td>{{s.class_name}}</td>
+        <td>{{ s.gender or "—" }}</td>
+        <td>
+          <span class="badge {% if not s.contribution_paid %}warning{% endif %}"
+            >{% if s.contribution_paid %}PAID{% else %}UNPAID{% endif %}</span
+          >
+        </td>
+        <td>
+          <a
+            href="{{url_for('student_detail', student_id=s.id)}}"
+            class="btn-small"
+            >View</a
+          >
+          <a
+            href="{{url_for('edit_student', student_id=s.id)}}"
+            class="btn-small"
+            >Edit</a
+          >
+          <a
+            href="{{url_for('assign', student_id=s.id)}}"
+            class="btn-small primary"
+            >Assign Books</a
+          >
+          <form
+            method="post"
+            action="{{url_for('toggle_fee',student_id=s.id)}}"
+            style="display: inline"
+          >
+            <button class="small">Toggle Fee</button>
+          </form>
+          <form
+            method="post"
+            action="{{url_for('delete_student', student_id=s.id)}}"
+            style="display: inline"
+            onsubmit="return confirm('Delete {{s.first_name}} {{s.last_name}}?');"
+          >
+            <button class="small danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">No students found.</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

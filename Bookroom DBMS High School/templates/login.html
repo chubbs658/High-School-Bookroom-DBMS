@@ -1,0 +1,68 @@
+{% extends "base.html" %}{% block content %}
+<div class="login-page">
+  <!-- No inline background-image here - .login-watermark in style.css
+       already reads var(--school-crest-url), which base.html sets from
+       static/images/crest.png. A hardcoded path here would just
+       duplicate that and break per-school builds. -->
+  <div class="login-watermark" aria-hidden="true"></div>
+  <div class="login-card">
+    <img
+      src="{{ url_for('static', filename='images/crest.png') }}"
+      alt="{{ brand_name }} crest"
+      class="login-crest"
+    />
+    <h1>{{ brand_abbrev }} Bookroom</h1>
+    <h4>Login</h4>
+    <form method="post">
+      <label>Username<input name="username" required autofocus /></label>
+      <label>Password<input type="password" name="password" required /></label>
+      <button>Sign in</button>
+    </form>
+    <h6 class="muted">
+      Forgot your password? Ask a system administrator to reset it for you.
+    </h6>
+  </div>
+
+  <style>
+    .login-crest {
+      display: block;
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      margin: 0 auto 10px;
+    }
+    .login-footer {
+      margin-top: 2rem;
+      text-align: center;
+    }
+    .login-footer p {
+      margin: 0;
+      font-size: 0.72rem;
+      letter-spacing: 0.01em;
+      color: var(--muted);
+    }
+    .login-footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .login-footer a:hover {
+      color: var(--brand-dark);
+      text-decoration: underline;
+    }
+    .login-footer .sep {
+      margin: 0 0.4rem;
+      color: var(--tint);
+    }
+  </style>
+
+  <footer class="login-footer">
+    <p>
+      Bookroom DBMS for Schools &middot; v1.0.0
+      <span class="sep">|</span>
+      &copy; 2026 Mona Technologies
+      <span class="sep">|</span>
+      <a href="mailto:mdcltechnologies@gmail.com">mdcltechnologies@gmail.com</a>
+    </p>
+  </footer>
+</div>
+{% endblock %}

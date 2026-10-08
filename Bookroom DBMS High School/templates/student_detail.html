@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block quick_jump %}
+<div class="quick-jump">
+  <span class="qj-label">Quick jump:</span>
+  <a class="primary" href="{{ url_for('assign', student_id=student.id) }}">Assign books to this student</a>
+  <a href="{{ url_for('students') }}">&larr; All students</a>
+  <a href="{{ url_for('books') }}">Books</a>
+  <a href="{{ url_for('issue_book_page') }}">Issue to another student</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ student.first_name }} {{ student.last_name }}</h1>
+<div class="panel">
+  <p>
+    <strong>Student #:</strong> {{ student.student_number }} &nbsp;|&nbsp;
+    <strong>Grade:</strong> {{ student.grade_level }} &nbsp;|&nbsp;
+    <strong>Class:</strong> {{ student.class_name }} &nbsp;|&nbsp;
+    <strong>Gender:</strong> {{ gender_label }} &nbsp;|&nbsp;
+    <strong>Contribution:</strong>
+    <span
+      class="badge {% if not student.contribution_paid %}warning{% endif %}"
+    >
+      {% if student.contribution_paid %}PAID{% else %}UNPAID{% endif %}
+    </span>
+  </p>
+  <a
+    href="{{ url_for('assign', student_id=student.id) }}"
+    class="btn-small primary"
+    >Assign Books</a
+  >
+  <a
+    href="{{ url_for('edit_student', student_id=student.id) }}"
+    class="btn-small"
+    >Edit</a
+  >
+  <form
+    method="post"
+    action="{{ url_for('delete_student', student_id=student.id) }}"
+    style="display: inline"
+    onsubmit="return confirm('Delete {{ student.first_name }} {{ student.last_name }}?');"
+  >
+    <button class="small danger">Delete</button>
+  </form>
+</div>
+
+<h2>Fees</h2>
+{% if fees %}
+<table>
+  <tr>
+    <th>Description</th>
+    <th>Amount</th>
+    <th>Status</th>
+    <th>Action</th>
+  </tr>
+  {% for f in fees %}
+  <tr>
+    <td>{{ f.description }}</td>
+    <td>{{ "%.2f"|format(f.amount) }}</td>
+    <td>{% if f.paid %}Paid ({{ f.paid_at }}){% else %}Unpaid{% endif %}</td>
+    <td>
+      {% if not f.paid %}
+      <form
+        method="post"
+        action="{{ url_for('pay_fee', fee_id=f.id) }}"
+        style="display: inline"
+      >
+        <button class="small">Mark paid</button>
+      </form>
+      {% endif %}
+      <form
+        method="post"
+        action="{{ url_for('delete_fee', fee_id=f.id) }}"
+        style="display: inline"
+        onsubmit="return confirm('Delete this fee?');"
+      >
+        <button class="small danger">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No fees on record.</p>
+{% endif %}
+
+<h2>Currently issued books</h2>
+{% if current_books %}
+<table>
+  <tr>
+    <th>BRN</th>
+    <th>Title</th>
+    <th>Subject</th>
+    <th>Issued</th>
+    <th></th>
+  </tr>
+  {% for b in current_books %}
+  <tr>
+    <td><a href="{{ url_for('book_detail', brn=b.brn) }}">{{ b.brn }}</a></td>
+    <td>{{ b.title }}</td>
+    <td>{{ b.subject }}</td>
+    <td>{{ b.issued_at }}</td>
+    <td>
+      {% if b.contribution_override %}<span class="badge warning"
+        >Contribution override</span
+      >{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No books currently issued to this student.</p>
+{% endif %} {% endblock %}

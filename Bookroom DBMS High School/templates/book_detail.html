@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block quick_jump %}
+<div class="quick-jump">
+  <span class="qj-label">Quick jump:</span>
+  <a class="primary" href="{{ url_for('issue_book_page', brn=book.brn) }}">Issue this book to a student</a>
+  <a href="{{ url_for('books') }}">&larr; All books</a>
+  <a href="{{ url_for('students') }}">Students</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Book: {{ book.brn }}</h1>
+
+<div class="panel">
+  <strong>{{ book.title }}</strong><br />
+  {{ book.subject }} · Grade {{ book.grade_level }}{% if book.grade_level in
+  [10,11] %} <span class="badge">4th/5th form</span>{% elif book.cross_grade %}
+  <span class="badge">Cross-grade</span>{% endif %} · {{ book.condition_status
+  }} · {{ book.status }}
+  <br />
+
+  {% if book.status == 'Available' %}
+  <a
+    href="{{ url_for('issue_book_page', brn=book.brn) }}"
+    class="btn-small primary"
+    >Issue to student</a
+  >
+  {% endif %}
+
+  <a href="{{ url_for('edit_book_by_id', book_id=book.id) }}" class="btn-small"
+    >Edit</a
+  >
+
+  <form
+    method="post"
+    action="{{ url_for('delete_book_by_id', book_id=book.id) }}"
+    style="display: inline"
+    onsubmit="return confirm('Delete {{ book.brn }} - {{ book.title }}?');"
+  >
+    <button class="small danger">Delete</button>
+  </form>
+</div>
+
+<h2>Complete assignment history</h2>
+<table>
+  <tr>
+    <th>Student</th>
+    <th>Class</th>
+    <th>Issued</th>
+    <th>Returned</th>
+    <th>Issue condition</th>
+    <th>Return condition</th>
+    <th>Return note</th>
+    <th>Attendant</th>
+  </tr>
+  {% for a in history %}
+  <tr>
+    <td>
+      {% if a.student_id %}
+      <a href="{{ url_for('student_detail', student_id=a.student_id) }}"
+        >{{ a.first_name }} {{ a.last_name }} ({{ a.student_number }})</a
+      >
+      {% else %}
+      {{ a.first_name }} {{ a.last_name }} ({{ a.student_number }})
+      {% endif %}
+    </td>
+    <td>{{ a.class_name }}</td>
+    <td>{{ a.issued_at }}</td>
+    <td>{{ a.returned_at or 'CURRENTLY ISSUED' }}</td>
+    <td>{{ a.issue_condition }}</td>
+    <td>{{ a.return_condition or '—' }}</td>
+    <td>{{ a.return_note or '—' }}</td>
+    <td>{{ a.attendant }}</td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="8">This book has never been assigned.</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

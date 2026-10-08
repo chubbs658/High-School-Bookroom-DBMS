@@ -1,0 +1,119 @@
+{% extends "base.html" %}{% block content %}
+<h1>Issue Book</h1>
+
+<div class="panel narrow">
+  <form method="get">
+    <label
+      >Student number or name
+      <input
+        name="student_number"
+        value="{{ student_number }}"
+        required
+        autofocus
+        placeholder="Scan ID, or type student number / name"
+      />
+    </label>
+    {% if brn %}<input type="hidden" name="brn" value="{{ brn }}" />{% endif %}
+    <button>Find student</button>
+  </form>
+</div>
+
+{% if student_number %} {% if student %}
+<div class="panel">
+  <p>
+    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+    &nbsp;|&nbsp; Grade {{ student.grade_level }} · {{ student.class_name }}
+    &nbsp;|&nbsp;
+    <span
+      class="badge {% if not student.contribution_paid %}warning{% endif %}"
+    >
+      {% if student.contribution_paid %}PAID{% else %}UNPAID{% endif %}
+    </span>
+  </p>
+  {% if block_reason %}
+  <div class="flash error">{{ block_reason }}</div>
+  <a
+    href="{{ url_for('student_detail', student_id=student.id) }}"
+    class="btn-small"
+    >View student</a
+  >
+  {% else %}
+  <a
+    href="{{ url_for('assign', student_id=student.id, brn=brn) if brn else url_for('assign', student_id=student.id) }}"
+    class="btn-small primary"
+    >Start adding books</a
+  >
+  {% endif %}
+</div>
+{% elif matches %}
+<div class="panel">
+  <p class="muted">
+    {{ matches|length }} students match "{{ student_number }}" — pick one:
+  </p>
+  <table>
+    <tr>
+      <th>Student #</th>
+      <th>Name</th>
+      <th>Grade / Class</th>
+      <th></th>
+    </tr>
+    {% for s in matches %}
+    <tr>
+      <td>{{ s.student_number }}</td>
+      <td>{{ s.first_name }} {{ s.last_name }}</td>
+      <td>Grade {{ s.grade_level }} · {{ s.class_name }}</td>
+      <td>
+        <a
+          href="{{ url_for('issue_book_page', student_number=s.student_number, brn=brn) if brn else url_for('issue_book_page', student_number=s.student_number) }}"
+          class="btn-small"
+          >Select</a
+        >
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<div class="panel">
+  <p class="muted">No student found matching "{{ student_number }}".</p>
+  <h2>Register new student</h2>
+  <form
+    method="post"
+    action="{{ url_for('issue_book_new_student') }}"
+    class="grid"
+  >
+    <label
+      >Student number<input
+        name="student_number"
+        value="{{ student_number }}"
+        required
+    /></label>
+    <label>First name<input name="first_name" required /></label>
+    <label>Last name<input name="last_name" required /></label>
+    <label
+      >Grade level<input
+        name="grade_level"
+        type="number"
+        min="1"
+        max="13"
+        required
+    /></label>
+    <label>Class<input name="class_name" required /></label>
+    <label
+      >Gender
+      <select name="gender" required>
+        <option value="" disabled selected>Select…</option>
+        {% for g in genders %}
+        <option value="{{ g }}">{{ g }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="check"
+      ><input type="checkbox" name="contribution_paid" /> Contribution
+      paid</label
+    >
+    {% if brn %}<input type="hidden" name="brn" value="{{ brn }}" />{% endif %}
+    <div><button>Register and start adding books</button></div>
+  </form>
+</div>
+{% endif %} {% endif %} {% endblock %}

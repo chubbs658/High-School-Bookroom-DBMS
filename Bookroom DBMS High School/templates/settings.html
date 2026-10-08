@@ -1,0 +1,317 @@
+{% extends "base.html" %}{% block content %}
+{% set is_admin = session.get('role') == 'admin' %}
+<h1>Settings</h1>
+<p class="muted settings-intro">{% if is_admin %}Manage the bookroom system from the options on the left.{% else %}Manage your own account from the options on the left.{% endif %}</p>
+
+<div class="settings-layout">
+  <aside class="settings-sidebar" aria-label="Settings sections">
+    {% if is_admin %}
+    <button type="button" class="settings-tab active" data-settings-tab="school-year">School year</button>
+    <button type="button" class="settings-tab" data-settings-tab="fees">Fees</button>
+    <button type="button" class="settings-tab" data-settings-tab="date-time">Date &amp; time</button>
+    <button type="button" class="settings-tab" data-settings-tab="backup">Backup &amp; restore</button>
+    {% endif %}
+    <button type="button" class="settings-tab{% if not is_admin %} active{% endif %}" data-settings-tab="account">Account settings</button>
+    {% if is_admin %}
+    <button type="button" class="settings-tab" data-settings-tab="users">User Settings</button>
+    <button type="button" class="settings-tab" data-settings-tab="about">About</button>
+    {% endif %}
+  </aside>
+
+  <div class="settings-content">
+{% if is_admin %}
+    <!-- Default section -->
+    <section class="settings-section active" data-settings-section="school-year">
+      <div class="panel">
+        <h2>School year</h2>
+        <p class="muted">Set the date when the current school year ends. All issued books are due back by this date.</p>
+        <form method="post">
+          <label>
+            School year end
+            <input type="date" name="school_year_end" value="{{ school_year_end }}" required />
+          </label>
+          <button>Save</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Fees section -->
+    <section class="settings-section" data-settings-section="fees" hidden>
+      <div class="settings-subnav" role="tablist" aria-label="Fee settings">
+        <button type="button" class="settings-subtab active" data-fee-tab="amounts">Fees</button>
+        <button type="button" class="settings-subtab" data-fee-tab="contribution">Contribution / Ride</button>
+      </div>
+
+      <div class="settings-subsection active" data-fee-section="amounts">
+        <div class="panel">
+          <h2>Fees</h2>
+          <p class="muted">Set the contribution and late-return fee amounts used by the system.</p>
+          <form method="post">
+            <label>
+              Contribution fee amount ($)
+              <input type="number" step="0.01" min="0" name="contribution_fee_amount" value="{{ contribution_fee_amount }}" required />
+            </label>
+            <label>
+              Late return fee amount ($ &mdash; charged once per book still out after the school year end date)
+              <input type="number" step="0.01" min="0" name="late_fee_amount" value="{{ late_fee_amount }}" required />
+            </label>
+            <button>Save</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="settings-subsection" data-fee-section="contribution" hidden>
+        <div class="panel">
+          <h2>Contribution / Ride</h2>
+          <p class="muted">
+            When ON, students with an unpaid school contribution fee can still be issued books everywhere in the system, without marking the fee as paid.
+            This does not apply to replacement or late fees &mdash; those must always be paid before new books can be assigned.
+          </p>
+          <p>
+            Status:
+            <span class="badge {% if not contribution_override_enabled %}warning{% endif %}">
+              {% if contribution_override_enabled %}ON{% else %}OFF{% endif %}
+            </span>
+          </p>
+          <form method="post" action="{{ url_for('toggle_contribution_override') }}">
+            <button class="small">
+              {% if contribution_override_enabled %}Turn override OFF{% else %}Turn override ON{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Date & time -->
+    <section class="settings-section" data-settings-section="date-time" hidden>
+      <div class="panel">
+        <h2>Date &amp; time</h2>
+        <p class="muted">
+          By default the whole system uses this server's real clock for "today" &mdash; due dates, late fees, and report defaults.
+          Turning on an override freezes the app's notion of "today" to a fixed date/time you choose below, which is useful for testing.
+        </p>
+        <p>
+          Real system clock:
+          <strong>{{ system_time.strftime('%Y-%m-%d %H:%M') }}</strong><br />
+          App is currently using:
+          <strong>{{ current_app_time.strftime('%Y-%m-%d %H:%M') }}</strong>
+          {% if time_override_enabled %}
+          <span class="badge warning">OVERRIDE ON</span>
+          {% else %}
+          <span class="badge">System time</span>
+          {% endif %}
+        </p>
+        <form method="post" action="{{ url_for('set_time_override') }}" class="grid time-override-set-form">
+          <label>
+            Override date
+            <input type="date" name="override_date" value="{{ time_override_value[:10] if time_override_value else '' }}" />
+          </label>
+          <label>
+            Override time
+            <input type="time" name="override_time" value="{{ time_override_value[11:16] if time_override_value else '' }}" />
+          </label>
+          <div><button>Set override</button></div>
+        </form>
+        <form method="post" action="{{ url_for('set_time_override') }}" class="time-override-system-form">
+          <input type="hidden" name="use_system_time" value="1" />
+          <button class="small">Use system time</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Backup & restore -->
+    <section class="settings-section" data-settings-section="backup" hidden>
+      <div class="panel">
+        <h2>Backup &amp; restore</h2>
+        <p class="muted">
+          Keep a copy of the bookroom database for recovery. Manual backups can be downloaded at any time, and automatic backups can be scheduled while the Windows application is running.
+          Restoring replaces <strong>all</strong> current data with the contents of the uploaded file. A safety copy of the database in place right before a restore is automatically saved to the <strong>backups/</strong> folder first.
+        </p>
+
+        <div class="backup-settings-card">
+          <div class="backup-settings-heading">
+            <div>
+              <h3>Automatic backup</h3>
+              <p class="muted">Automatically create database snapshots in the app's <strong>backups/</strong> folder.</p>
+            </div>
+            <span class="badge {% if auto_backup_enabled %}{% else %}warning{% endif %}">
+              {% if auto_backup_enabled %}ON{% else %}OFF{% endif %}
+            </span>
+          </div>
+
+          <form method="post" action="{{ url_for('configure_automatic_backup') }}">
+            <label class="checkbox-row">
+              <input type="checkbox" name="auto_backup_enabled" value="1" {% if auto_backup_enabled %}checked{% endif %} />
+              <span>Enable automatic backups</span>
+            </label>
+
+            <div class="grid backup-options">
+              <label>
+                Backup frequency
+                <select name="auto_backup_frequency_hours">
+                  <option value="24" {% if auto_backup_frequency_hours == '24' %}selected{% endif %}>Every day</option>
+                  <option value="168" {% if auto_backup_frequency_hours == '168' %}selected{% endif %}>Every 7 days</option>
+                  <option value="720" {% if auto_backup_frequency_hours == '720' %}selected{% endif %}>Every 30 days</option>
+                </select>
+              </label>
+              <label>
+                Keep automatic backups
+                <select name="auto_backup_retention">
+                  <option value="3" {% if auto_backup_retention == '3' %}selected{% endif %}>3 backups</option>
+                  <option value="7" {% if auto_backup_retention == '7' %}selected{% endif %}>7 backups</option>
+                  <option value="14" {% if auto_backup_retention == '14' %}selected{% endif %}>14 backups</option>
+                  <option value="30" {% if auto_backup_retention == '30' %}selected{% endif %}>30 backups</option>
+                </select>
+              </label>
+            </div>
+
+            <p class="muted backup-status">
+              Last automatic backup:
+              <strong>{{ auto_backup_last_run if auto_backup_last_run else 'None yet' }}</strong>
+            </p>
+            <button>Save automatic backup settings</button>
+          </form>
+
+          <form method="post" action="{{ url_for('run_automatic_backup_now') }}" class="backup-now-form">
+            <button type="submit" class="small">Create automatic backup now</button>
+          </form>
+        </div>
+
+        <div class="backup-actions">
+          <div>
+            <h3>Manual backup</h3>
+            <p class="muted">Create and download a complete database backup immediately.</p>
+            <form method="post" action="{{ url_for('backup_database') }}">
+              <button>Download backup</button>
+            </form>
+          </div>
+
+          <div>
+            <h3>Restore</h3>
+            <p class="muted">Restore from a previously downloaded <strong>.db</strong>, <strong>.sqlite</strong>, or <strong>.sqlite3</strong> backup.</p>
+            <form method="post" action="{{ url_for('restore_database') }}" enctype="multipart/form-data"
+              onsubmit="return confirm('This will replace ALL current data with the contents of the uploaded backup file. This cannot be undone from within the app. Continue?');">
+              <label>
+                Backup file (.db, .sqlite, .sqlite3)
+                <input type="file" name="backup_file" accept=".db,.sqlite,.sqlite3" required />
+              </label>
+              <button class="danger">Restore from backup</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+{% endif %}
+
+    <!-- Account settings -->
+    <section class="settings-section{% if not is_admin %} active{% endif %}" data-settings-section="account"{% if is_admin %} hidden{% endif %}>
+      <div class="panel">
+        <h2>Account settings</h2>
+        <p class="muted">Change your own password. Available to all signed-in users.</p>
+        <a href="{{ url_for('account_password') }}" class="btn-small">Change my password</a>
+      </div>
+    </section>
+
+{% if is_admin %}
+    <!-- User settings -->
+    <section class="settings-section" data-settings-section="users" hidden>
+      <div class="panel">
+        <h2>User Settings</h2>
+        <p class="muted">Create and manage staff and admin user accounts.</p>
+        <a href="{{ url_for('users') }}" class="btn-small">Open User Settings</a>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="settings-section" data-settings-section="about" hidden>
+      <div class="about-application">
+        <div class="about-header">
+          <h2>Bookroom DBMS for Schools</h2>
+          <p>By Mona Technologies &middot; Version 1.0.0 &middot; Initial Release</p>
+        </div>
+
+        <div class="about-content">
+          <section class="about-block">
+            <h3>About the Application</h3>
+            <p>Bookroom DBMS for Schools is a school-focused bookroom management system developed by Mona Technologies to support the efficient organization, administration, and tracking of school textbook inventories and rental activities.</p>
+            <p>The system is designed to streamline book registration, student records, book issuance and returns, and inventory management through a centralized digital platform. By reducing reliance on manual recordkeeping, Bookroom DBMS for Schools aims to improve operational efficiency, record accuracy, and accountability within school bookrooms.</p>
+            <p>This application represents the first official release (Version 1.0.0) of the Bookroom DBMS platform and establishes the foundation for future improvements, features, and system enhancements.</p>
+          </section>
+
+          <section class="about-block">
+            <h3>Intellectual Property &amp; Ownership</h3>
+            <p>Bookroom DBMS for Schools, including its original software code, system design, user interface, branding, and associated materials, is the intellectual property of Mona Technologies, subject to any applicable third-party software licenses and rights.</p>
+            <p>Unauthorized copying, reproduction, modification, distribution, or commercial use of the application's proprietary materials is prohibited without prior written authorization from Mona Technologies, except where permitted by applicable law or an applicable license.</p>
+          </section>
+
+          <section class="about-block about-version">
+            <h3>Version Information</h3>
+            <div class="about-details">
+              <div><span>Application</span><strong>Bookroom DBMS for Schools</strong></div>
+              <div><span>Developer</span><strong>Mona Technologies</strong></div>
+              <div><span>Version</span><strong>1.0.0</strong></div>
+              <div><span>Release</span><strong>Initial Release</strong></div>
+              <div><span>Release year</span><strong>2026</strong></div>
+            </div>
+          </section>
+
+          <section class="about-block">
+            <h3>Contact Information</h3>
+            <p>Mona Technologies<br />Email: <strong>mdcltechnologies@gmail.com</strong></p>
+          </section>
+
+          <section class="about-block about-rights">
+            <h3>Copyright &amp; Rights Reserved</h3>
+            <p>&copy; 2026 Mona Technologies. All Rights Reserved.<br />Bookroom DBMS for Schools is a Mona Technologies software product.</p>
+          </section>
+        </div>
+
+        <div class="about-developer-footer">
+          <img src="{{ url_for('static', filename='images/Mona_Technologies.png') }}" alt="Mona Technologies" class="about-developer-logo" />
+          <p>Developed &amp; maintained by Mona Technologies</p>
+        </div>
+
+        <div class="about-footer">
+          Bookroom DBMS for Schools v1.0.0 &middot; &copy; 2026 Mona Technologies. All Rights Reserved.
+        </div>
+      </div>
+    </section>
+{% endif %}
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabs = document.querySelectorAll('.settings-tab');
+    const sections = document.querySelectorAll('.settings-section');
+    const feeTabs = document.querySelectorAll('.settings-subtab');
+    const feeSections = document.querySelectorAll('.settings-subsection');
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        const target = tab.dataset.settingsTab;
+        tabs.forEach(t => t.classList.toggle('active', t === tab));
+        sections.forEach(section => {
+          const show = section.dataset.settingsSection === target;
+          section.hidden = !show;
+          section.classList.toggle('active', show);
+        });
+      });
+    });
+
+    feeTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        const target = tab.dataset.feeTab;
+        feeTabs.forEach(t => t.classList.toggle('active', t === tab));
+        feeSections.forEach(section => {
+          const show = section.dataset.feeSection === target;
+          section.hidden = !show;
+          section.classList.toggle('active', show);
+        });
+      });
+    });
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends "base.html" %}{% block content %}
+<h1>Books issued</h1>
+<p class="muted">
+  <a href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>
+</p>
+
+<form method="get" class="muted">
+  Grade
+  <input type="number" name="grade" value="{{ grade }}" style="width: 60px" />
+  Class
+  <input
+    type="text"
+    name="class_name"
+    value="{{ class_name }}"
+    style="width: 100px"
+  />
+  Subject
+  <input
+    type="text"
+    name="subject"
+    value="{{ subject }}"
+    style="width: 120px"
+  />
+  Title
+  <input type="text" name="title" value="{{ title }}" style="width: 160px" />
+  Student
+  <input
+    type="text"
+    name="student"
+    value="{{ student }}"
+    style="width: 160px"
+    placeholder="Number or name"
+  />
+  <button class="small" type="submit">Filter</button>
+  <a href="{{ url_for('report_books_issued') }}">Clear</a>
+</form>
+
+<style>
+  .summary-panel {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.9rem 1rem;
+    margin: 0.75rem 0 1.25rem 0;
+  }
+  .matched-student {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+  }
+  .matched-student strong {
+    font-size: 1.05rem;
+  }
+  .tally-total {
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .tally-total .label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #666;
+  }
+
+  /* Condition breakdown: CSS conic-gradient pies (no JS/network
+     dependency) side by side, each with a text legend for accessibility
+     and for anyone whose browser doesn't render conic-gradient. The
+     gender breakdowns reuse the same panel/pie/legend pattern. */
+  .condition-panels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin: 1.25rem 0;
+  }
+  .condition-panel {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .condition-panel h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+  }
+  .pie {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid #ddd;
+  }
+  .condition-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+  }
+  .condition-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0;
+  }
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* Vertical grouped list: one card per student, books within a card
+     sorted by subject/title (see the route's ORDER BY) so alike books sit
+     next to each other instead of scattering across a wide table. */
+  .student-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .student-group {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+  }
+  .student-group h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+  .student-group h3 .group-count {
+    font-weight: 400;
+    color: #666;
+    font-size: 0.85rem;
+  }
+  .book-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .book-list li {
+    padding: 0.4rem 0;
+    border-top: 1px solid #f0f0f0;
+  }
+  .book-list li:first-child {
+    border-top: none;
+  }
+  .book-title {
+    font-weight: 600;
+  }
+  .book-meta {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 0.1rem;
+  }
+</style>
+
+<div class="summary-panel">
+  {% if context_primary or context_qualifiers %}
+  <div class="matched-student">
+    {% if context_primary %} Showing: {% if context_student_id %}
+    <strong
+      ><a href="{{ url_for('student_detail', student_id=context_student_id) }}"
+        >{{ context_primary }}</a
+      ></strong
+    >
+    {% else %}
+    <strong>{{ context_primary }}</strong>
+    {% endif %} {% endif %} {% if context_qualifiers %} {% if context_primary %}
+    &mdash; {% endif %}{{ context_qualifiers|join(', ') }} {% endif %}
+  </div>
+  {% endif %}
+  <div class="tally-total">
+    {{ tally_total }}
+    <span class="label"
+      >book(s) issued{% if grade or class_name or subject or title or student %}
+      (filtered){% endif %}</span
+    >
+  </div>
+</div>
+
+{% if rows or returned_rows %}
+<div class="condition-panels">
+  <div class="condition-panel">
+    <div
+      class="pie"
+      style="background: conic-gradient({{ return_condition_gradient }});"
+    ></div>
+    <div>
+      <h4>Return Condition</h4>
+      <ul class="condition-legend">
+        {% for item in return_condition_breakdown %}
+        <li>
+          <span
+            class="legend-swatch"
+            style="background: {{ item.color }};"
+          ></span
+          >{{ item.label }} &mdash; {{ item.count }} ({{ item.percent }}%)
+        </li>
+        {% else %}
+        <li class="muted">No books returned yet{% if grade or class_name or subject or title or student %} matching this filter{% endif %}.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="condition-panel">
+    <div
+      class="pie"
+      style="background: conic-gradient({{ condition_at_issue_gradient }});"
+    ></div>
+    <div>
+      <h4>Condition at issue</h4>
+      <ul class="condition-legend">
+        {% for item in condition_at_issue %}
+        <li>
+          <span
+            class="legend-swatch"
+            style="background: {{ item.color }};"
+          ></span
+          >{{ item.label }} &mdash; {{ item.count }} ({{ item.percent }}%)
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="condition-panel">
+    <div
+      class="pie"
+      style="background: conic-gradient({{ gender_breakdown_gradient }});"
+    ></div>
+    <div>
+      <h4>Issued by gender</h4>
+      <ul class="condition-legend">
+        {% for item in gender_breakdown %}
+        <li>
+          <span
+            class="legend-swatch"
+            style="background: {{ item.color }};"
+          ></span
+          >{{ item.label }} &mdash; {{ item.count }} ({{ item.percent }}%)
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="condition-panel">
+    <div
+      class="pie"
+      style="background: conic-gradient({{ returned_gender_gradient }});"
+    ></div>
+    <div>
+      <h4>Returned by gender</h4>
+      <ul class="condition-legend">
+        {% for item in returned_gender_breakdown %}
+        <li>
+          <span
+            class="legend-swatch"
+            style="background: {{ item.color }};"
+          ></span
+          >{{ item.label }} &mdash; {{ item.count }} ({{ item.percent }}%)
+        </li>
+        {% else %}
+        <li class="muted">No books returned yet{% if grade or class_name or subject or title or student %} matching this filter{% endif %}.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="student-groups">
+  {% for group in grouped_by_student %}
+  <div class="student-group">
+    <h3>
+      <a href="{{ url_for('student_detail', student_id=group.student_id) }}"
+        >{{ group.first_name }} {{ group.last_name }}</a
+      >
+      ({{ group.student_number }}) &middot; {{ group.form_label }} &middot; {{
+      group.class_name }} &middot; {{ group.gender_label }}
+      <span class="group-count">&mdash; {{ group.books|length }} book(s)</span>
+    </h3>
+    <ul class="book-list">
+      {% for b in group.books %}
+      <li>
+        <div class="book-title">
+          <a href="{{ url_for('book_detail', brn=b.brn) }}">{{ b.title }}</a>
+        </div>
+        <div class="book-meta">
+          {{ b.subject }} &middot; Grade {{ b.grade_level }} &middot; BRN {{
+          b.brn }} &middot; Issued {{ b.issued_at }} &middot; Condition: {{
+          b.book_condition }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <p class="muted">No books match this filter.</p>
+  {% endfor %}
+</div>
+{% endblock %}

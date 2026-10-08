@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Library Issue History</h1>
+
+<form method="get">
+  <input type="text" name="brn" placeholder="BRN" value="{{ request.args.get('brn','') }}">
+  <input type="text" name="student" placeholder="Student" value="{{ request.args.get('student','') }}">
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+  <thead>
+    <tr><th>BRN</th><th>Title</th><th>Type</th><th>Student</th><th>Issued</th><th>Returned</th><th>Status</th><th>Attendant</th></tr>
+  </thead>
+  <tbody>
+    {% for a in assignments %}
+    <tr>
+      <td>{{ a.brn }}</td>
+      <td>{{ a.title }}</td>
+      <td>{{ a.type }}</td>
+      <td>{{ a.first_name }} {{ a.last_name }} ({{ a.student_number }})</td>
+      <td>{{ a.issued_at }}</td>
+      <td>{{ a.returned_at or "—" }}</td>
+      <td>{{ a.status }}</td>
+      <td>{{ a.attendant }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

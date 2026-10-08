@@ -1,0 +1,198 @@
+{% extends "base.html" %}{% block content %}
+<h1>Return Books</h1>
+
+<div class="panel narrow">
+  <form method="get">
+    <label
+      >Student ID Number or Name
+      <input
+        name="student_number"
+        value="{{ student_number }}"
+        required
+        autofocus
+        placeholder="Scan ID, or type student number / name"
+      />
+    </label>
+    <button>Find Student</button>
+  </form>
+</div>
+
+{% if student_number %} {% if student %}
+<div class="panel">
+  <p>
+    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+    &nbsp;|&nbsp; Grade {{ student.grade_level }} · {{ student.class_name }}
+  </p>
+</div>
+
+<h2>Currently issued books</h2>
+{% if current_books %}
+<table>
+  <tr>
+    <th>BRN</th>
+    <th>Title</th>
+    <th>Issued</th>
+    <th>Issued condition</th>
+    <th>Return</th>
+  </tr>
+  {% for b in current_books %}
+  <tr>
+    <td>{{ b.brn }}</td>
+    <td>{{ b.title }}</td>
+    <td>{{ b.issued_at }}</td>
+    <td>{{ b.issue_condition }}</td>
+    <td>
+      <form
+        method="post"
+        action="{{ url_for('return_book', assignment_id=b.assignment_id) }}"
+        class="return-form"
+        data-issue-condition="{{ b.issue_condition }}"
+      >
+        <select name="return_condition" class="return-condition">
+          {% for c in conditions %}
+          <option>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <div class="return-note" hidden style="margin-top: .5rem;">
+          <label>
+            Note (optional)
+            <textarea name="return_note" rows="3" maxlength="1000" placeholder="Optional: describe the damage, wear, markings, missing pages, stains, etc."></textarea>
+          </label>
+        </div>
+        <span class="mismatch-decision" hidden>
+          <label class="replacement-option">
+            <input
+              type="radio"
+              name="decision"
+              value="no_replacement"
+              required
+            />
+            <span>No replacement needed</span>
+          </label>
+          <label class="replacement-option">
+            <input type="radio" name="decision" value="replace" required />
+            <span>Needs replacement</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="amount"
+              placeholder="Fee amount"
+              style="width: 6em"
+            />
+          </label>
+        </span>
+        <button class="small">Return</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">This student has no books currently issued.</p>
+{% endif %} {% elif matches %}
+<div class="panel">
+  <p class="muted">
+    {{ matches|length }} students match "{{ student_number }}" — pick one:
+  </p>
+  <table>
+    <tr>
+      <th>Student #</th>
+      <th>Name</th>
+      <th>Grade / Class</th>
+      <th></th>
+    </tr>
+    {% for s in matches %}
+    <tr>
+      <td>{{ s.student_number }}</td>
+      <td>{{ s.first_name }} {{ s.last_name }}</td>
+      <td>Grade {{ s.grade_level }} · {{ s.class_name }}</td>
+      <td>
+        <a
+          href="{{ url_for('return_book_page', student_number=s.student_number) }}"
+          class="btn-small"
+          >Select</a
+        >
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<p class="muted">No student found matching "{{ student_number }}".</p>
+{% endif %} {% endif %}
+
+<script>
+  // Ordered worst-to-best (or best-to-worst) scale of conditions, passed
+  // from the server so the JS threshold always matches the Python-side
+  // CONDITIONS list in app.py. Position in this array is what "degrees of
+  // separation" is measured against.
+  var CONDITION_ORDER = {{ conditions|tojson }};
+
+  function conditionIndex(c) {
+    return CONDITION_ORDER.indexOf(c);
+  }
+
+  document.querySelectorAll(".return-form").forEach(function (form) {
+    var issueCondition = form.dataset.issueCondition;
+    var select = form.querySelector(".return-condition");
+    var decisionBox = form.querySelector(".mismatch-decision");
+    var noteBox = form.querySelector(".return-note");
+    var noteInput = form.querySelector('textarea[name="return_note"]');
+    var amountInput = form.querySelector('input[name="amount"]');
+    var replaceRadio = form.querySelector('input[value="replace"]');
+    var noReplaceRadio = form.querySelector('input[value="no_replacement"]');
+
+    function refresh() {
+      var issueIdx = conditionIndex(issueCondition);
+      var returnIdx = conditionIndex(select.value);
+      // Positive degrees = returned worse than issued (higher index in
+      // CONDITIONS == worse condition). Negative = returned better.
+      var degrees = returnIdx - issueIdx;
+      var needsDecision = Math.abs(degrees) >= 2;
+      var replaceAllowed = degrees >= 2;
+
+      // Optional note: offered whenever the book came back worse than it was
+      // issued. It is never required - it is simply cleared if hidden again.
+      var conditionWorse = degrees > 0;
+      noteBox.hidden = !conditionWorse;
+      if (!conditionWorse) noteInput.value = "";
+
+      // Decision panel (checkbox-equivalent radios) only becomes active at
+      // 2+ degrees of separation in either direction.
+      decisionBox.hidden = !needsDecision;
+      replaceRadio.required = needsDecision;
+      noReplaceRadio.required = needsDecision;
+
+      // Replacement fee section mimics that same activation behaviour, but
+      // only for the "worse" direction — a book returned in a much BETTER
+      // condition should never trigger a replacement fee.
+      replaceRadio.disabled = !replaceAllowed;
+      amountInput.disabled = !replaceAllowed;
+
+      if (!needsDecision) {
+        replaceRadio.checked = false;
+        noReplaceRadio.checked = false;
+        amountInput.value = "";
+      } else if (!replaceAllowed && replaceRadio.checked) {
+        // Selection is no longer valid (e.g. condition was changed back
+        // after "Replace" was picked) — clear it rather than silently submit.
+        replaceRadio.checked = false;
+        amountInput.value = "";
+      }
+    }
+
+    select.addEventListener("change", refresh);
+    form.addEventListener("submit", function (e) {
+      var issueIdx = conditionIndex(issueCondition);
+      var returnIdx = conditionIndex(select.value);
+      var degrees = returnIdx - issueIdx;
+      if (Math.abs(degrees) >= 2 && replaceRadio.checked && !amountInput.value) {
+        e.preventDefault();
+        amountInput.focus();
+      }
+    });
+    refresh();
+  });
+</script>
+{% endblock %}

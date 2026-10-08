@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ book.title }} ({{ book.brn }})</h1>
+<p>Author: {{ book.author or "—" }}</p>
+<p>Type: {{ book.type }}</p>
+<p>Status: {{ book.status }}</p>
+<p>Replacement Fee: {{ "%.2f"|format(book.replacement_fee) }}</p>
+
+<a href="{{ url_for('library.edit_book_by_id', book_id=book.id) }}" class="btn">Edit</a>
+<form method="post" action="{{ url_for('library.delete_book_by_id', book_id=book.id) }}" style="display:inline"
+      onsubmit="return confirm('Delete this book?');">
+  <button type="submit">Delete</button>
+</form>
+
+<h2>Issue History</h2>
+{% if history %}
+<table>
+  <thead>
+    <tr><th>Student</th><th>Issued</th><th>Returned</th><th>Status</th><th>Attendant</th></tr>
+  </thead>
+  <tbody>
+    {% for row in history %}
+    <tr>
+      <td>{{ row.first_name }} {{ row.last_name }} ({{ row.student_number }})</td>
+      <td>{{ row.issued_at }}</td>
+      <td>{{ row.returned_at or "—" }}</td>
+      <td>{{ row.status }}</td>
+      <td>{{ row.attendant }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No issue history yet.</p>
+{% endif %}
+{% endblock %}

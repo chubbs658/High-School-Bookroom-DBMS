@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Library Books</h1>
+
+<form method="get" class="filter-form">
+  <input type="text" name="q" placeholder="Search BRN, title, author" value="{{ request.args.get('q','') }}">
+  <input type="text" name="type" placeholder="Type (Fiction, Non-Fiction...)" value="{{ request.args.get('type','') }}">
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s }}" {% if request.args.get('status')==s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<h2>Register New Book</h2>
+<form method="post">
+  <label>BRN <input type="text" name="brn" value="{{ prefill_brn }}" required></label>
+  <label>Title <input type="text" name="title" required></label>
+  <label>Author <input type="text" name="author"></label>
+  <label>Type <input type="text" name="type" placeholder="Fiction, Non-Fiction, Reference..." required></label>
+  <label>Replacement Fee <input type="number" step="0.01" name="replacement_fee" value="0"></label>
+  <button type="submit">Register Book</button>
+</form>
+
+{% if brn_matches %}
+<p class="flash error">Multiple books share BRN "{{ prefill_brn }}" &mdash; select the correct one below.</p>
+{% endif %}
+
+<h2>Book List</h2>
+<table>
+  <thead>
+    <tr><th>BRN</th><th>Title</th><th>Author</th><th>Type</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for book in books %}
+    <tr>
+      <td>{{ book.brn }}</td>
+      <td>{{ book.title }}</td>
+      <td>{{ book.author }}</td>
+      <td>{{ book.type }}</td>
+      <td>{{ book.status }}</td>
+      <td>
+        <a href="{{ url_for('library.book_detail_by_id', book_id=book.id) }}">View</a>
+        <a href="{{ url_for('library.edit_book_by_id', book_id=book.id) }}">Edit</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

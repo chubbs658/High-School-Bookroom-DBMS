@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Outstanding Library Fees</h1>
+
+<form method="get">
+  <input type="text" name="type" placeholder="Filter by type" value="{{ type_ }}">
+  <button type="submit">Filter</button>
+</form>
+
+{% if rows %}
+<table>
+  <thead><tr><th>Student</th><th>Book</th><th>Description</th><th>Amount</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.first_name }} {{ r.last_name }} ({{ r.student_number }})</td>
+      <td>{{ r.title }} {% if r.brn %}({{ r.brn }}){% endif %}</td>
+      <td>{{ r.description }}</td>
+      <td>{{ "%.2f"|format(r.amount) }}</td>
+      <td>{{ r.created_at }}</td>
+      <td>
+        <form method="post" action="{{ url_for('library.pay_fee', fee_id=r.fee_id) }}" style="display:inline">
+          <button type="submit">Mark Paid</button>
+        </form>
+        <form method="post" action="{{ url_for('library.delete_fee', fee_id=r.fee_id) }}" style="display:inline"
+              onsubmit="return confirm('Delete this fee?');">
+          <button type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No outstanding library fees.</p>
+{% endif %}
+{% endblock %}

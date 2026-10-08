@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block content %}
+<h1>Edit Student</h1>
+<div class="panel narrow">
+  <form method="post">
+    <label
+      >Student #<input
+        name="student_number"
+        value="{{ student.student_number }}"
+        required
+    /></label>
+    <label
+      >First name<input
+        name="first_name"
+        value="{{ student.first_name }}"
+        required
+    /></label>
+    <label
+      >Last name<input
+        name="last_name"
+        value="{{ student.last_name }}"
+        required
+    /></label>
+    <label
+      >Grade level<input
+        type="number"
+        name="grade_level"
+        value="{{ student.grade_level }}"
+        required
+    /></label>
+    <label
+      >Class<input name="class_name" value="{{ student.class_name }}" required
+    /></label>
+    <label
+      >Gender
+      <select name="gender" required>
+        <option value="" disabled {% if not student.gender %}selected{% endif %}>
+          Select…
+        </option>
+        {% for g in genders %}
+        <option value="{{ g }}" {% if student.gender == g %}selected{% endif %}>
+          {{ g }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <button>Save</button>
+  </form>
+  <a
+    href="{{ url_for('student_detail', student_id=student.id) }}"
+    class="btn-small"
+    >← Cancel</a
+  >
+</div>
+{% endblock %}

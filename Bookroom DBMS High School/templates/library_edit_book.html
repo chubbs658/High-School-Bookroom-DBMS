@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Edit Book</h1>
+<form method="post">
+  <label>BRN <input type="text" name="brn" value="{{ book.brn }}" required></label>
+  <label>Title <input type="text" name="title" value="{{ book.title }}" required></label>
+  <label>Author <input type="text" name="author" value="{{ book.author or '' }}"></label>
+  <label>Type <input type="text" name="type" value="{{ book.type }}" required></label>
+  <label>Status
+    <select name="status">
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if book.status==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Replacement Fee <input type="number" step="0.01" name="replacement_fee" value="{{ book.replacement_fee }}"></label>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

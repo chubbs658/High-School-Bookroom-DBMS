@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.5" />
+    <title>{{ brand_abbrev }} Bookroom</title>
+
+    <meta name="theme-color" content="{{ theme.tint or '#dfe4ec' }}" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="{{ brand_abbrev }} Bookroom" />
+
+    <!-- School crest - the same filename for every build; build_for_school.py
+         copies the right school's image into static/images/crest.png before
+         packaging, so nothing here needs to change per school. -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='images/crest.png') }}"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      href="{{ url_for('static', filename='images/crest.png') }}"
+    />
+
+    <link
+      rel="manifest"
+      href="{{ url_for('static', filename='manifest.json') }}"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <style>
+      :root {
+        /* Always set - style.css's watermarks (.login-watermark,
+           .dataset-watermark) read this directly. */
+        --school-crest-url: url("{{ url_for('static', filename='images/crest.png') }}");
+
+        {% if theme %}
+        /* Only emitted once a school build has actually supplied a full
+           theme (via build_for_school.py) - otherwise style.css's own
+           :root defaults apply untouched, which keeps local dev/testing
+           sane. Full palette, not just brand/accent: background, text,
+           and muted tones differ per school too (e.g. a cool gray scheme
+           vs a warm cream scheme). */
+        --bg: {{ theme.bg }};
+        --surface: {{ theme.surface }};
+        --text: {{ theme.text }};
+        --muted: {{ theme.muted }};
+        --brand: {{ theme.brand }};
+        --brand-dark: {{ theme.brand_dark }};
+        --accent: {{ theme.accent }};
+        --tint: {{ theme.tint }};
+        --tint-light: {{ theme.tint_light }};
+        --primary: {{ theme.primary }};
+        --primary-dark: {{ theme.primary_dark }};
+        {% endif %}
+      }
+
+      /* Bookroom / Library switch */
+      .section-switch {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(0, 0, 0, 0.08);
+      }
+
+      .section-switch a {
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        color: inherit;
+        opacity: 0.7;
+      }
+
+      .section-switch a.active {
+        background: #ffffff;
+        opacity: 1;
+      }
+
+      /* Brand link: keep the header's white text (global a{} would turn it red) */
+      header a.brand,
+      header a.brand:hover {
+        color: inherit;
+        text-decoration: none;
+      }
+      header a.brand:hover {
+        opacity: 0.85;
+      }
+
+      /* Quick-jump bar */
+      .quick-jump {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem 0.75rem;
+        background: #f4f6fa;
+        border: 1px solid #dde2ec;
+        border-radius: 6px;
+        font-size: 0.9rem;
+      }
+
+      .quick-jump .qj-label {
+        color: #667;
+        font-weight: 600;
+        margin-right: 0.25rem;
+      }
+
+      .quick-jump a {
+        padding: 0.3rem 0.75rem;
+        border-radius: 4px;
+        background: #fff;
+        border: 1px solid #ccd3e0;
+        text-decoration: none;
+        color: inherit;
+        white-space: nowrap;
+      }
+
+      .quick-jump a:hover {
+        background: #e8edf7;
+      }
+
+      .quick-jump a.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+    </style>
+  </head>
+
+  <body>
+    {% if session.get('attendant_id') %}
+
+    <div class="section-switch">
+      <a
+        href="{{ url_for('dashboard') }}"
+        class="{{ 'active' if request.blueprint != 'library' else '' }}"
+      >
+        Bookroom
+      </a>
+
+      <a
+        href="{{ url_for('library.dashboard') }}"
+        class="{{ 'active' if request.blueprint == 'library' else '' }}"
+      >
+        Library
+      </a>
+    </div>
+
+    <header>
+
+      <!-- Branding: crest + label link back to the landing page of the
+           section you are in (Bookroom dashboard or Library dashboard) -->
+      <a
+        class="brand"
+        href="{{ url_for('library.dashboard') if request.blueprint == 'library' else url_for('dashboard') }}"
+        title="Go to dashboard"
+        aria-label="{{ brand_abbrev }} {{ 'Library' if request.blueprint == 'library' else 'Bookroom' }} - go to dashboard"
+      >
+        <img
+          src="{{ url_for('static', filename='images/crest.png') }}"
+          alt="{{ brand_name }} crest"
+          class="brand-crest"
+        />
+
+        <span>
+          {{ brand_abbrev }} {{ 'LIBRARY' if request.blueprint == 'library' else 'BOOKROOM' }}
+        </span>
+      </a>
+
+      <nav>
+
+        {% if request.blueprint == 'library' %}
+
+        <a href="{{ url_for('library.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('library.issue_books_page') }}">Issue Books</a>
+        <a href="{{ url_for('library.return_books_page') }}">Return Books</a>
+        <a href="{{ url_for('library.books') }}">Books</a>
+        <a href="{{ url_for('library.history') }}">History</a>
+        <a href="{{ url_for('library.report_fees_outstanding') }}">Fees</a>
+
+        {% else %}
+
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('issue_book_page') }}">Issue Book</a>
+        <a href="{{ url_for('return_book_page') }}">Return Book</a>
+        <a href="{{ url_for('books') }}">Books</a>
+        {% endif %}
+
+        <a href="{{ url_for('students') }}">Students</a>
+        <a href="{{ url_for('settings') }}">Settings</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+
+      </nav>
+
+    </header>
+
+    {% endif %}
+
+    <main>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% for category, message in messages %}
+
+          <div class="flash {{ category }}">
+            {{ message }}
+          </div>
+
+        {% endfor %}
+
+      {% endwith %}
+
+      {% block quick_jump %}{% endblock %}
+
+      {% block content %}{% endblock %}
+
+    </main>
+  </body>
+</html>

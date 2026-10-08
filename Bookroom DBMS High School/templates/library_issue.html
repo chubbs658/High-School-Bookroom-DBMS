@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Issue Library Books</h1>
+
+{% if available_books is not defined %}
+  {# --- Step 1: find the student --- #}
+  <form method="get">
+    <label>Student Number or Name
+      <input type="text" name="student_number" value="{{ student_number }}" required>
+    </label>
+    <button type="submit">Find Student</button>
+  </form>
+
+  {% if matches %}
+  <h2>Multiple matches &mdash; select a student</h2>
+  <ul>
+    {% for m in matches %}
+    <li><a href="{{ url_for('library.issue_books_page', student_number=m.student_number) }}">
+      {{ m.first_name }} {{ m.last_name }} ({{ m.student_number }})
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if student %}
+  <h2>{{ student.first_name }} {{ student.last_name }} ({{ student.student_number }})</h2>
+  {% if block_reason %}
+    <p class="flash error">{{ block_reason }}</p>
+  {% else %}
+    <p><a href="{{ url_for('library.issue', student_id=student.id) }}" class="btn">Continue to Issue Books</a></p>
+  {% endif %}
+  {% endif %}
+
+{% else %}
+  {# --- Step 2: select books to issue --- #}
+  <h2>{{ student.first_name }} {{ student.last_name }} ({{ student.student_number }})</h2>
+
+  <h3>Currently Issued</h3>
+  {% if current_books %}
+  <ul>
+    {% for b in current_books %}
+    <li>{{ b.title }} ({{ b.brn }}) &mdash; {{ b.type }}, issued {{ b.issued_at }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No library books currently out for this student.</p>
+  {% endif %}
+
+  <form method="get">
+    <input type="text" name="q" placeholder="Search title/author/BRN" value="{{ q }}">
+    <input type="text" name="type" placeholder="Type" value="{{ type_filter }}">
+    <button type="submit">Filter</button>
+  </form>
+
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+  <form method="post">
+    <h3>Select Books to Issue</h3>
+    {% if available_books %}
+      {% for b in available_books %}
+      <label class="book-checkbox">
+        <input type="checkbox" name="book_ids" value="{{ b.id }}">
+        {{ b.title }} ({{ b.brn }}) &mdash; {{ b.type }}{% if b.author %} by {{ b.author }}{% endif %}
+      </label><br>
+      {% endfor %}
+      <button type="submit">Issue Selected Books</button>
+    {% else %}
+      <p>No available books match this filter.</p>
+    {% endif %}
+  </form>
+{% endif %}
+{% endblock %}

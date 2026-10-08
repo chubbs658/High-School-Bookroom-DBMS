@@ -1,0 +1,226 @@
+{% extends "base.html" %}{% block content %}
+<div class="dashboard-page">
+  <div class="dashboard-title">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="muted">
+        Welcome, {{ session.attendant_name }}. <br />
+        Rental books are due by: {{ school_year_end or 'not set' }}
+        {% if session.get('role') == 'admin' %}
+        — <a href="{{ url_for('settings') }}">change</a>.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <style>
+    .dash-pane {
+      margin-bottom: 4rem;
+    }
+    .grade-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin: 0.5rem 0 0 0;
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+    .grade-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      background: #f2f2f2;
+    }
+    .grade-chip .count {
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .grade-chip .label {
+      font-size: 0.75rem;
+      color: #666;
+    }
+    a.grade-chip {
+      text-decoration: none;
+      color: inherit;
+    }
+    a.grade-chip:hover {
+      background: #e6e6e6;
+    }
+    h2 a.pane-link {
+      text-decoration: none;
+      color: inherit;
+    }
+    h2 a.pane-link:hover {
+      text-decoration: underline;
+    }
+
+    /* App footer / about strip */
+    .app-footer {
+      margin-top: 3.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e1e5ee;
+      text-align: center;
+    }
+    .app-footer p {
+      margin: 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.01em;
+      color: #8a8f9c;
+    }
+    .app-footer a {
+      color: #8a8f9c;
+      text-decoration: none;
+    }
+    .app-footer a:hover {
+      color: #1a2340;
+      text-decoration: underline;
+    }
+    .app-footer .sep {
+      margin: 0 0.5rem;
+      color: #c7cbd6;
+    }
+  </style>
+
+  <div class="panel">
+    <h2>Manage</h2>
+    <a href="{{ url_for('books') }}" class="btn-small">Books</a>
+    <a href="{{ url_for('students') }}" class="btn-small">Students</a>
+    <a href="{{ url_for('report_books_issued') }}" class="btn-small">Books Issued</a>
+    <a href="{{ url_for('history') }}" class="btn-small">History</a>
+    <a href="{{ url_for('inventory') }}" class="btn-small">Inventory</a>
+    {% if session.get('role') == 'admin' %}
+    <a href="{{ url_for('users') }}" class="btn-small">Users</a>
+    {% endif %}
+  </div>
+
+  <div class="dash-pane">
+    <h2>
+      <a class="pane-link" href="{{ url_for('report_books_issued') }}"
+        >Books issued ({{ books_issued_by_grade|sum(attribute='total') }})</a
+      >
+    </h2>
+    {% if books_issued_by_grade %}
+    <div class="grade-row">
+      {% for row in books_issued_by_grade %}
+      <a
+        class="grade-chip"
+        href="{{ url_for('report_books_issued', grade=row.grade_level) }}"
+      >
+        <span class="count">{{ row.total }}</span
+        ><span class="label">{{ row.form_label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">No books currently issued.</p>
+    {% endif %}
+  </div>
+
+  <div class="dash-pane">
+    <h2>
+      <a class="pane-link" href="{{ url_for('report_books_outstanding') }}"
+        >Books outstanding ({{ books_outstanding_by_grade|sum(attribute='total') }})</a
+      >
+    </h2>
+    {% if not is_past_due %}
+    <p class="muted">
+      Not past the school year end date ({{ school_year_end or 'not set' }})
+      yet.
+    </p>
+    {% elif books_outstanding_by_grade %}
+    <a class="grade-row" href="{{ url_for('report_books_outstanding') }}">
+      {% for row in books_outstanding_by_grade %}
+      <div class="grade-chip">
+        <span class="count">{{ row.total }}</span
+        ><span class="label">{{ row.form_label }}</span>
+      </div>
+      {% endfor %}
+    </a>
+    {% else %}
+    <p class="muted">No outstanding books.</p>
+    {% endif %}
+  </div>
+
+  <div class="dash-pane">
+    <h2>
+      <a class="pane-link" href="{{ url_for('report_fees_outstanding') }}"
+        >Outstanding fees ({{ outstanding_fees|length }})</a
+      >
+    </h2>
+    {% if outstanding_fees %}
+    <table>
+      <tr>
+        <th>Type</th>
+        <th>Student</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Action</th>
+      </tr>
+      {% for f in outstanding_fees %}
+      <tr>
+        <td>{{ f.fee_type|capitalize }}</td>
+        <td>
+          <a href="{{ url_for('student_detail', student_id=f.student_id) }}"
+            >{{ f.first_name }} {{ f.last_name }} ({{ f.student_number }})</a
+          >
+        </td>
+        <td>{{ f.description }}</td>
+        <td>{{ "%.2f"|format(f.amount) if f.amount else "" }}</td>
+        <td>
+          {% if f.fee_type == 'contribution' %}
+          <form
+            method="post"
+            action="{{ url_for('toggle_fee', student_id=f.student_id) }}"
+            style="display: inline"
+          >
+            <button class="small">Mark paid</button>
+          </form>
+          {% elif session.get('role') == 'admin' %}
+          <form
+            method="post"
+            action="{{ url_for('pay_fee', fee_id=f.fee_id) }}"
+            style="display: inline"
+          >
+            <button class="small">Mark paid</button>
+          </form>
+          <form
+            method="post"
+            action="{{ url_for('delete_fee', fee_id=f.fee_id) }}"
+            style="display: inline"
+            onsubmit="return confirm('Delete this fee?');"
+          >
+            <button class="small danger">Delete</button>
+          </form>
+          {% else %}
+          <span class="muted">Admin only</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="muted">No outstanding fees.</p>
+    {% endif %}
+  </div>
+
+  <footer class="app-footer">
+    <p>
+      Bookroom DBMS for Schools &middot; v1.0.0
+      <span class="sep">|</span>
+      Built by Mona Technologies
+      <span class="sep">|</span>
+      <a href="mailto:mdcltechnologies@gmail.com">mdcltechnologies@gmail.com</a>
+      <span class="sep">|</span>
+      &copy; 2026 Mona Technologies. All Rights Reserved.
+    </p>
+  </footer>
+</div>
+{% endblock %}

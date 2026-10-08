@@ -1,0 +1,228 @@
+{% extends "base.html" %}{% block content %}
+<h1>Assign Books</h1>
+
+<div class="panel">
+  <p>
+    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+    &nbsp;|&nbsp; Student #: {{ student.student_number }} &nbsp;|&nbsp; Form {{
+    student.grade_level }} · {{ student.class_name }} &nbsp;|&nbsp;
+    <span
+      class="badge {% if not student.contribution_paid %}warning{% endif %}"
+    >
+      {% if student.contribution_paid %}PAID{% else %}UNPAID{% endif %}
+    </span>
+  </p>
+  <a
+    href="{{ url_for('student_detail', student_id=student.id) }}"
+    class="btn-small"
+    >&larr; Back to student</a
+  >
+</div>
+
+{% if contribution_unpaid %}
+<div class="flash warning">
+  This student's school contribution fee is unpaid, but the system-wide
+  contribution fee override is currently <strong>ON</strong>{% if session.get('role') == 'admin' %}
+  (<a href="{{ url_for('settings') }}">Settings</a>){% endif %}, so books can
+  still be issued. The fee itself remains unpaid.
+</div>
+{% endif %} {% if added_book %}
+<div class="flash success">✓ Issued: {{ added_book }}</div>
+{% endif %} {% if error %}
+<div class="flash error">{{ error }}</div>
+{% if register_brn %}
+<div class="panel narrow">
+  <p>
+    Would you like to register <strong>{{ register_brn }}</strong> as a new
+    book?
+  </p>
+  <a href="{{ url_for('books', brn=register_brn) }}" class="btn-small"
+    >Register New Book</a
+  >
+</div>
+{% endif %} {% endif %}
+
+<div class="panel narrow">
+  <h2>Enter BRN</h2>
+  <form method="post" autocomplete="off">
+    <label
+      >Book Registration Number
+      <input
+        id="brn"
+        name="brn"
+        required
+        autofocus
+        placeholder="Scan or type BRN"
+        value="{{ prefill_brn }}"
+      />
+    </label>
+    <input type="hidden" name="browse_grade" value="{{ browse_grade }}" />
+    <input type="hidden" name="browse_subject" value="{{ browse_subject|e }}" />
+    <input type="hidden" name="browse_title" value="{{ browse_title|e }}" />
+    <input type="hidden" name="browse_status" value="{{ browse_status|e }}" />
+    <button>Add Book</button>
+  </form>
+</div>
+
+{% if brn_matches %}
+<div class="panel">
+  <h2>Select Book</h2>
+  <p>
+    This BRN is registered to multiple books. Select the exact book you want to
+    assign to this student.
+  </p>
+  <table>
+    <tr>
+      <th>BRN</th>
+      <th>Title</th>
+      <th>Subject</th>
+      <th>Grade</th>
+      <th>Condition</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+    {% for b in brn_matches %}
+    <tr>
+      <td>{{ b.brn }}</td>
+      <td>{{ b.title }}</td>
+      <td>{{ b.subject }}</td>
+      <td>{{ b.grade_level }}</td>
+      <td>{{ b.condition_status }}</td>
+      <td><span class="badge{% if b.status != 'Available' %} issued{% endif %}">{{ b.status }}</span></td>
+      <td>
+        {% if b.status == "Available" and b.grade_ok %}
+        <form method="post" autocomplete="off">
+          <input type="hidden" name="brn" value="{{ b.brn }}" />
+          <input type="hidden" name="book_id" value="{{ b.id }}" />
+          <button type="submit">Assign This Book</button>
+        </form>
+        {% elif b.status != "Available" %}
+        <span class="muted">Not available</span>
+        {% else %}
+        <span class="muted">Wrong grade</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Browse books</h2>
+  <p class="muted">
+    Defaults to this student's grade ({{ browse_grade_label }}) and available
+    books only, and automatically includes any cross-grade-eligible books for
+    that grade. Use the Status filter to also see issued or otherwise
+    unavailable books. Click a result to fill in the BRN above, then press
+    Add Book.
+  </p>
+  <form method="get" class="grid">
+    <label
+      >Grade
+      <select name="browse_grade">
+        {% for g, label in form_labels_by_grade %}
+        <option value="{{ g }}" {% if g == browse_grade %}selected{% endif %}>
+          {{ label }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label
+      >Subject<input name="browse_subject" value="{{ browse_subject }}"
+    /></label>
+    <label>Title<input name="browse_title" value="{{ browse_title }}" /></label>
+    <label
+      >Status
+      <select name="browse_status">
+        <option value="All" {% if browse_status == "All" %}selected{% endif %}>All statuses</option>
+        {% for s in browse_statuses %}
+        <option value="{{ s }}" {% if browse_status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div><button>Filter</button></div>
+  </form>
+
+  <table>
+    <tr>
+      <th>BRN</th>
+      <th>Title</th>
+      <th>Subject</th>
+      <th>Grade</th>
+      <th>Condition</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+    {% for b in browsable_books %}
+    <tr>
+      <td>{{ b.brn }}</td>
+      <td>{{ b.title }}</td>
+      <td>{{ b.subject }}</td>
+      <td>
+        {{ b.grade_level }} {% if b.grade_level in [10,11] %}
+        <span class="badge">4th/5th form</span> {% elif b.cross_grade %}
+        <span class="badge">Cross-grade</span>
+        {% endif %}
+      </td>
+      <td>{{ b.condition_status }}</td>
+      <td><span class="badge{% if b.status != 'Available' %} issued{% endif %}">{{ b.status }}</span></td>
+      <td>
+        {% if b.status == "Available" %}
+        <button
+          type="button"
+          class="small"
+          onclick="selectBrn('{{ b.brn|e }}')"
+        >
+          Use
+        </button>
+        {% else %}
+        <span class="muted">Not available</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="7">No books match these filters.</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<h2>Books assigned this session ({{ current_books | length }})</h2>
+{% if current_books %}
+<table>
+  <tr>
+    <th>BRN</th>
+    <th>Title</th>
+    <th>Subject</th>
+    <th>Issued at</th>
+    <th></th>
+  </tr>
+  {% for b in current_books %}
+  <tr>
+    <td>{{ b.brn }}</td>
+    <td>{{ b.title }}</td>
+    <td>{{ b.subject }}</td>
+    <td>{{ b.issued_at }}</td>
+    <td>
+      {% if b.contribution_override %}<span class="badge warning"
+        >Contribution override</span
+      >{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p><a href="{{ url_for('students') }}">&larr; Done, back to students</a></p>
+{% else %}
+<p class="muted">No books assigned yet.</p>
+{% endif %}
+
+<script>
+  function selectBrn(brn) {
+    var input = document.getElementById("brn");
+    input.value = brn;
+    input.focus();
+  }
+</script>
+{% endblock %}

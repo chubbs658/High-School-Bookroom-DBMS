@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block content %}
+<h1>Outstanding fees</h1>
+<p class="muted"><a href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a></p>
+
+<form method="get" class="muted">
+  Grade <input type="number" name="grade" value="{{ grade }}" style="width:60px">
+  Class <input type="text" name="class_name" value="{{ class_name }}" style="width:100px">
+  Subject <input type="text" name="subject" value="{{ subject }}" style="width:120px">
+  <button class="small" type="submit">Filter</button>
+  <a href="{{ url_for('report_fees_outstanding') }}">Clear</a>
+</form>
+<p class="muted">Subject filters replacement/late fees only — contribution fees aren't tied to a subject.</p>
+
+<p class="muted">{{ rows|length }} unpaid item(s){% if grade or class_name or subject %} matching this filter{% endif %}.</p>
+
+<table><tr><th>Type</th><th>Student</th><th>Class</th><th>Description</th><th>Book</th><th>Amount</th><th>Created</th><th>Action</th></tr>
+{% for f in rows %}
+<tr>
+  <td>{{ f.fee_type|capitalize }}</td>
+  <td><a href="{{ url_for('student_detail', student_id=f.student_id) }}">{{ f.first_name }} {{ f.last_name }} ({{ f.student_number }})</a></td>
+  <td>{{ f.class_name }}</td>
+  <td>{{ f.description }}</td>
+  <td>{% if f.brn %}{{ f.title }} ({{ f.brn }}){% endif %}</td>
+  <td>{{ "%.2f"|format(f.amount) if f.amount else "" }}</td>
+  <td>{{ f.created_at or "" }}</td>
+  <td>
+    {% if f.fee_type == 'contribution' %}
+    <form method="post" action="{{ url_for('toggle_fee', student_id=f.student_id) }}" style="display:inline"><button class="small">Mark paid</button></form>
+    {% elif session.get('role') == 'admin' %}
+    <form method="post" action="{{ url_for('pay_fee', fee_id=f.fee_id) }}" style="display:inline"><button class="small">Mark paid</button></form>
+    <form method="post" action="{{ url_for('delete_fee', fee_id=f.fee_id) }}" style="display:inline" onsubmit="return confirm('Delete this fee?');"><button class="small danger">Delete</button></form>
+    {% else %}
+    <span class="muted">Admin only</span>
+    {% endif %}
+  </td>
+</tr>
+{% else %}
+<tr><td colspan="8" class="muted">No unpaid fees match this filter.</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

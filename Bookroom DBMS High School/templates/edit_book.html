@@ -1,0 +1,70 @@
+{% extends "base.html" %}{% block content %}
+<h1>Edit Book</h1>
+<div class="panel narrow">
+  <form method="post">
+    <label>BRN<input name="brn" value="{{ book.brn }}" required /></label>
+    <label>Title<input name="title" value="{{ book.title }}" required /></label>
+    <label
+      >Subject<input name="subject" value="{{ book.subject }}" required
+    /></label>
+    <label
+      >Grade level<input
+        id="grade_level"
+        type="number"
+        name="grade_level"
+        value="{{ book.grade_level }}"
+        required
+    /></label>
+    <label
+      >Condition
+      <select name="condition_status">
+        {% for c in conditions %}
+        <option {% if c == book.condition_status %}selected{% endif %}>
+          {{ c }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label
+      >Status
+      <select name="status">
+        {% for s in statuses %}
+        <option {% if s == book.status %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label id="cross_grade_wrap" style="display:none">
+      <input type="checkbox" name="cross_grade" id="cross_grade" value="1" {% if book.cross_grade %}checked{% endif %}>
+      Shared across Grades 7–9 (1st–3rd form)
+    </label>
+    <button>Save</button>
+  </form>
+
+    <a
+    href="{{ url_for('book_detail_by_id', book_id=book.id) }}"
+    class="btn-small"
+  >
+    ← Cancel
+  </a>
+</div>
+<script>
+(function() {
+  var gradeInput = document.getElementById('grade_level');
+  var wrap = document.getElementById('cross_grade_wrap');
+  var checkbox = document.getElementById('cross_grade');
+  function normalizeGrade(g) {
+    if (g >= 1 && g <= 6) return g + 6;
+    return g;
+  }
+  function sync() {
+    var g = parseInt(gradeInput.value, 10);
+    var normalized = normalizeGrade(g);
+    var show = normalized >= 7 && normalized <= 9;
+    wrap.style.display = show ? '' : 'none';
+    if (!show) checkbox.checked = false;
+  }
+  gradeInput.addEventListener('input', sync);
+  sync();
+})();
+</script>
+{% endblock %}

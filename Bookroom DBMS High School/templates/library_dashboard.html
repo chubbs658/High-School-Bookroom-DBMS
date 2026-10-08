@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Library Dashboard</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-number">{{ total_books }}</span>
+    <span class="stat-label">Total Books</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ available }}</span>
+    <span class="stat-label">Available</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ issued }}</span>
+    <span class="stat-label">Issued</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ lost }}</span>
+    <span class="stat-label">Lost</span>
+  </div>
+</div>
+
+<div class="quick-links">
+  <a href="{{ url_for('library.issue_books_page') }}" class="btn">Issue Books</a>
+  <a href="{{ url_for('library.return_books_page') }}" class="btn">Return Books</a>
+  <a href="{{ url_for('library.books') }}" class="btn">Manage Books</a>
+</div>
+
+<h2>Books Currently Out</h2>
+{% if currently_out %}
+<table>
+  <thead>
+    <tr><th>BRN</th><th>Title</th><th>Type</th><th>Student</th><th>Issued</th></tr>
+  </thead>
+  <tbody>
+    {% for row in currently_out %}
+    <tr>
+      <td>{{ row.brn }}</td>
+      <td>{{ row.title }}</td>
+      <td>{{ row.type }}</td>
+      <td>{{ row.first_name }} {{ row.last_name }} ({{ row.student_number }})</td>
+      <td>{{ row.issued_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No library books are currently out.</p>
+{% endif %}
+
+<h2>Outstanding Fees</h2>
+{% if outstanding_fees %}
+<table>
+  <thead>
+    <tr><th>Student</th><th>Description</th><th>Amount</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for fee in outstanding_fees %}
+    <tr>
+      <td>{{ fee.first_name }} {{ fee.last_name }} ({{ fee.student_number }})</td>
+      <td>{{ fee.description }}</td>
+      <td>{{ "%.2f"|format(fee.amount) }}</td>
+      <td>
+        <form method="post" action="{{ url_for('library.pay_fee', fee_id=fee.fee_id) }}" style="display:inline">
+          <button type="submit">Mark Paid</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No outstanding library fees.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block content %}
+<h1>Inventory</h1>
+
+<h2>Overall</h2>
+<table><tr><th>Total</th><th>Available</th><th>Issued</th><th>Other</th></tr>
+<tr><td>{{ totals.total }}</td><td>{{ totals.available }}</td><td>{{ totals.issued }}</td><td>{{ totals.other }}</td></tr>
+</table>
+
+<h2>By subject</h2>
+<table><tr><th>Subject</th><th>Total</th><th>Available</th><th>Issued</th><th>Other</th></tr>
+{% for r in by_subject %}
+<tr><td>{{ r.subject }}</td><td>{{ r.total }}</td><td>{{ r.available }}</td><td>{{ r.issued }}</td><td>{{ r.other }}</td></tr>
+{% endfor %}
+</table>
+
+<h2>By title</h2>
+<table><tr><th>Title</th><th>Subject</th><th>Grade</th><th>Total</th><th>Available</th><th>Issued</th><th>Other</th></tr>
+{% for r in by_title %}
+<tr><td>{{ r.title }}</td><td>{{ r.subject }}</td><td>{{ r.grade_level }}</td><td>{{ r.total }}</td><td>{{ r.available }}</td><td>{{ r.issued }}</td><td>{{ r.other }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

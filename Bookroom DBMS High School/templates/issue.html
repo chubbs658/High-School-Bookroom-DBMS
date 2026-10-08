@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block content %}
+<h1>Issue / Assign Book</h1>
+<div class="panel narrow"><p>Enter a BRN and student number. The system will automatically reject a book when its intended grade does not match the student's grade.</p>
+<form method="post">
+<label>Book Registration Number (BRN)<input name="brn" required autofocus></label>
+<label>Student Number<input name="student_number" required></label>
+<button>Assign book</button>
+</form></div>
+{% endblock %}

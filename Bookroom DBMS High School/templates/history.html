@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% block content %}
+<h1>Assignment History</h1>
+<details class="panel">
+  <summary>Search</summary>
+  <form class="grid" method="get">
+    <label
+      >BRN<input name="brn" value="{{request.args.get('brn','')}}"
+    /></label>
+    <label
+      >Student name / number<input
+        name="student"
+        value="{{request.args.get('student','')}}"
+    /></label>
+    <div><button>Search</button></div>
+  </form>
+</details>
+<table>
+  <tr>
+    <th>BRN</th>
+    <th>Book</th>
+    <th>Student</th>
+    <th>Issued</th>
+    <th>Issued condition</th>
+    <th>Returned</th>
+    <th>Return condition</th>
+    <th>Return note</th>
+    <th>Attendant</th>
+    <th>Override</th>
+  </tr>
+  {% for a in assignments %}
+  <tr>
+    <td>{{a.brn}}</td>
+    <td>{{a.title}}</td>
+    <td>
+      {{a.first_name}} {{a.last_name}}<br /><small
+        >{{a.student_number}} / {{a.class_name}}</small
+      >
+    </td>
+    <td>{{a.issued_at}}</td>
+    <td>{{a.issue_condition}}</td>
+    <td>{{a.returned_at or 'CURRENTLY ISSUED'}}</td>
+    <td>{{a.return_condition or '—'}}</td>
+    <td>{{a.return_note or '—'}}</td>
+    <td>{{a.attendant}}</td>
+    <td>
+      {% if a.contribution_override %}<span class="badge warning"
+        >Contribution</span
+      >{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="10">No history found.</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

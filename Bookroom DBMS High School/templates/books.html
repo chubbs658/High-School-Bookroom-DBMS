@@ -1,0 +1,76 @@
+{% extends "base.html" %}{% block content %}
+<div class="dataset-page">
+  <div class="dataset-watermark" aria-hidden="true"></div>
+  <div class="dataset-content">
+    <h1>Books</h1>
+
+    <details class="panel" {% if prefill_brn %}open{% endif %}>
+      <summary>Register book</summary>
+      <form method="post" class="grid">
+        <label>BRN<input name="brn" required value="{{ prefill_brn|e }}"></label>
+        <label>Title<input name="title" required></label>
+        <label>Subject<input name="subject" required></label>
+        <label>Grade level<input id="grade_level" name="grade_level" type="number" min="1" max="13" required></label>
+        <label>Condition<select name="condition_status">{% for c in conditions %}<option>{{c}}</option>{% endfor %}</select></label>
+        <label id="cross_grade_wrap" style="display:none">
+          <input type="checkbox" name="cross_grade" id="cross_grade" value="1">
+          Shared across Grades 7–9 (1st–3rd form)
+        </label>
+        <div><button>Register book</button></div>
+      </form>
+    </details>
+
+    <details class="panel">
+      <summary>Filter books</summary>
+      <form class="grid" method="get">
+        <label>BRN / title<input name="q" value="{{request.args.get('q','')}}"></label>
+        <label>Grade<input name="grade" value="{{request.args.get('grade','')}}"></label>
+        <label>Subject<input name="subject" value="{{request.args.get('subject','')}}"></label>
+        <label>Condition<select name="condition"><option value="">Any</option>{% for c in conditions %}<option {% if request.args.get('condition')==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></label>
+        <div><button>Filter</button></div>
+      </form>
+    </details>
+
+    <table>
+      <tr><th>BRN</th><th>Title</th><th>Subject</th><th>Grade</th><th>Condition</th><th>Status</th><th>Action</th></tr>
+      {% for b in books %}
+      <tr>
+        <td><a href="{{url_for('book_detail_by_id', book_id=b.id)}}">{{b.brn}}</a></td>
+        <td>{{b.title}}</td>
+        <td>{{b.subject}}</td>
+        <td>{{b.grade_level}}{% if b.grade_level in [10,11] %} <span class="badge">4th/5th form</span>{% elif b.cross_grade %} <span class="badge">Cross-grade</span>{% endif %}</td>
+        <td>{{b.condition_status}}</td>
+        <td><span class="badge{% if b.status != 'Available' %} issued{% endif %}">{{b.status}}</span></td>
+        <td>
+          <a href="{{url_for('issue_book_page', brn=b.brn)}}" class="btn-small">Issue Book</a>
+          <a href="{{url_for('edit_book_by_id', book_id=b.id)}}" class="btn-small">Edit</a>
+          <form method="post" action="{{url_for('delete_book_by_id', book_id=b.id)}}" style="display:inline" onsubmit="return confirm('Delete {{b.brn}} - {{b.title}}?');"><button class="small danger">Delete</button></form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No books found.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+<script>
+(function() {
+  var gradeInput = document.getElementById('grade_level');
+  var wrap = document.getElementById('cross_grade_wrap');
+  var checkbox = document.getElementById('cross_grade');
+  function normalizeGrade(g) {
+    if (g >= 1 && g <= 6) return g + 6;
+    return g;
+  }
+  function sync() {
+    var g = parseInt(gradeInput.value, 10);
+    var normalized = normalizeGrade(g);
+    var show = normalized >= 7 && normalized <= 9;
+    wrap.style.display = show ? '' : 'none';
+    if (!show) checkbox.checked = false;
+  }
+  gradeInput.addEventListener('input', sync);
+  sync();
+})();
+</script>
+{% endblock %}
